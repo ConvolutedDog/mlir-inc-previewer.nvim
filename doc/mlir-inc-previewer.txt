@@ -1,0 +1,139 @@
+*mlir-inc-previewer.txt*   Preview and manage MLIR .inc files inline (Neovim)
+
+==============================================================================
+CONTENTS                                              *mlir-inc-previewer*
+
+  1. Introduction ........... |mlir-inc-previewer-intro|
+  2. Setup .................. |mlir-inc-previewer-setup|
+  3. Commands ............... |mlir-inc-previewer-commands|
+  4. Keymaps ................ |mlir-inc-previewer-keymaps|
+  5. Statusline ............. |mlir-inc-previewer-statusline|
+  6. How it works ........... |mlir-inc-previewer-internals|
+
+==============================================================================
+1. INTRODUCTION                                    *mlir-inc-previewer-intro*
+
+A Neovim port of the "MLIR Inc Previewer" VS Code extension. It expands the
+content of a TableGen-generated `#include "...inc"` directly into your buffer
+(similar to `:r path/to/file.inc`, but tag-wrapped and reversible), so you can
+read the generated declarations inline without leaving the file.
+
+Expanded content is wrapped in tags and the original include line is commented
+out, so the expansion can be collapsed/cleaned again, and is never written to
+disk (clean-on-save).
+
+Two expansion modes:
+  - macro-aware:   filters out conditional (#ifdef/#if ...) blocks that are not
+                   active given the macros defined in the host file.
+  - macro-unaware: expands the full .inc file content as-is.
+
+The on-disk path of the .inc file is resolved through the LSP (e.g. clangd)
+first, then via a filesystem fallback (relative path, &path, project search).
+
+==============================================================================
+2. SETUP                                           *mlir-inc-previewer-setup*
+
+Commands are available without setup. Call setup() to enable buffer-local
+keymaps and clean-on-save:
+>lua
+    require('mlir-inc-previewer').setup({
+      -- File extensions (no leading dot) the plugin attaches to.
+      extensions = {
+        'c', 'cpp', 'cxx', 'h', 'hpp', 'hxx',
+        'cc', 'cp', 'c++', 'hh', 'hp', 'h++',
+        'inl', 'inc', 'ipp', 'tcc', 'tpp', 'def', 'cu', 'cuh',
+      },
+      clean_on_save = true,   -- clean preview blocks before :write
+      use_lsp = true,         -- resolve .inc paths via the LSP when supported
+      search_range = 3,       -- lines above/below the cursor to scan
+      deep_search = true,     -- last-resort recursive project search
+      keymaps = {
+        toggle = '<leader>iu',
+        toggle_full = '<leader>ij',
+        expand_all = '<leader>iy',
+        expand_all_full = '<leader>ih',
+        clean = '<leader>ic',
+        next = '<leader>in',
+      },
+    })
+<
+Set any keymap to false or '' to disable it.
+
+Plugin manager example (lazy.nvim):
+>lua
+    {
+      'ConvolutedDog/mlir-inc-previewer.nvim',
+      event = { 'BufReadPre', 'BufNewFile' },
+      cmd = {
+        'MlirIncToggle', 'MlirIncToggleFull', 'MlirIncExpandAll',
+        'MlirIncExpandAllFull', 'MlirIncClean', 'MlirIncCleanAndSave',
+        'MlirIncNext', 'MlirIncHelp',
+      },
+      opts = {},
+    }
+<
+==============================================================================
+3. COMMANDS                                      *mlir-inc-previewer-commands*
+
+  :MlirIncToggle          Expand/Collapse the preview near the cursor
+                          (macro-aware).
+  :MlirIncToggleFull      Expand/Collapse the preview near the cursor
+                          (macro-unaware).
+  :MlirIncExpandAll       Expand every .inc include in the buffer (macro-aware).
+  :MlirIncExpandAllFull   Expand every .inc include in the buffer
+                          (macro-unaware).
+  :MlirIncClean           Remove all preview blocks, restore include lines.
+  :MlirIncCleanAndSave    Clean all preview blocks, then write the file.
+  :MlirIncNext            Jump to the next preview block.
+  :MlirIncHelp             Open this help file.
+
+If `:help mlir-inc-previewer` says "no help", the plugin is not loaded yet.
+Run `:MlirIncHelp` or `:Lazy load mlir-inc-previewer.nvim` first.
+4. KEYMAPS                                        *mlir-inc-previewer-keymaps*
+
+Buffer-local keymaps are attached to files whose extension is in the configured
+`extensions` list (see |mlir-inc-previewer-setup|) after setup(). This is based
+on the file extension, not Neovim's filetype detection, so extensions such as
+.inc, .def, .tcc, .tpp, .inl and .ipp are handled too. Defaults (normal mode):
+
+  <leader>iu   toggle (macro-aware)
+  <leader>ij   toggle (macro-unaware)
+  <leader>iy   expand all (macro-aware)
+  <leader>ih   expand all (macro-unaware)
+  <leader>ic   clean all
+  <leader>in   navigate to next preview
+
+The cursor does not need to be exactly on the `#include` line; the plugin
+searches +/-3 lines around the cursor, and recognises the cursor being inside
+an expanded preview block when collapsing.
+
+==============================================================================
+5. STATUSLINE                                  *mlir-inc-previewer-statusline*
+
+`require('mlir-inc-previewer').statusline()` returns a short string such as
+"MLIR Inc: 2 previews" (empty when the buffer is clean). Add it to your
+statusline, e.g. with lualine:
+>lua
+    sections = {
+      lualine_x = { function() return require('mlir-inc-previewer').statusline() end },
+    }
+<
+==============================================================================
+6. HOW IT WORKS                                *mlir-inc-previewer-internals*
+
+On expand, the original include line is replaced with:
+>
+    // clang-format off
+    /// <original #include ...>  /// <- GENERATED BY MLIR INC PREVIEWER! ...
+    // clang-format on
+    /// --- [MLIR_INC_PREVIEW_START] ---
+    // clang-format off
+    /// MLIR Inc File: <resolved path>
+    // clang-format on
+    <expanded .inc content>
+    /// --- [MLIR_INC_PREVIEW_END] ---
+<
+Collapse/clean reverses this: it deletes the tagged block and the surrounding
+clang-format directives, then uncomments the original include line.
+
+ vim:tw=78:ts=8:ft=help:norl:
