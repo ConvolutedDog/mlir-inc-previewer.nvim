@@ -48,8 +48,12 @@ M.defaults = {
   -- Disable on very large repos if the fallback is slow (rely on the LSP).
   deep_search = true,
   -- In macro-aware mode, insert a one-line /// comment summarising each
-  -- contiguous region of omitted (inactive) code. Default true.
+  -- contiguous region of omitted (inactive) code. Ignored when hide_inactive_blocks
+  -- is true.
   omit_marker = true,
+  -- When true, drop entire inactive #if..#endif blocks (directives, markers, and
+  -- body). Only active conditional content is shown.
+  hide_inactive_blocks = false,
   -- Buffer-local keymaps. Set any entry to false/'' to disable it.
   keymaps = {
     toggle = '<leader>iu',          -- Expand/Collapse (macro-aware)

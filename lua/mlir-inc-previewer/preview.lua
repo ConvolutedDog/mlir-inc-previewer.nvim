@@ -22,11 +22,17 @@ end
 
 -- Filter .inc lines through a (running) macro state, keeping only active lines.
 -- The state is advanced in place, so callers can reuse it across includes to
--- get correct sequential macro context. When `omit_marker` is enabled, each
--- contiguous run of omitted body lines gets one summary /// comment.
+-- get correct sequential macro context.
+--
+-- hide_inactive_blocks: drop whole inactive #if..#endif regions (nothing shown).
+-- omit_marker (when hide is false): one /// summary per omitted body region.
 local function is_directive(trimmed)
   return trimmed:match('^#if') or trimmed:match('^#elif')
       or trimmed:match('^#else') or trimmed:match('^#endif')
+end
+
+local function is_if_open(trimmed)
+  return trimmed:match('^#ifdef') or trimmed:match('^#ifndef') or trimmed:match('^#if')
 end
 
 local function omit_marker_line(count, context)
@@ -35,10 +41,12 @@ local function omit_marker_line(count, context)
 end
 
 local function filter_with_state(ms, inc_lines)
-  local show_markers = cfg.options.omit_marker
+  local hide = cfg.options.hide_inactive_blocks
+  local show_markers = not hide and cfg.options.omit_marker
   local out = {}
   local omit_count = 0
   local omit_context = nil
+  local skip_depth = 0 -- nested inactive blocks being fully suppressed
 
   local function flush_omit()
     if omit_count > 0 then
@@ -52,17 +60,53 @@ local function filter_with_state(ms, inc_lines)
 
   for _, line in ipairs(inc_lines) do
     local trimmed = vim.trim(line)
-    ms:process_line(trimmed)
-    if is_directive(trimmed) then
-      flush_omit()
-      table.insert(out, line)
-    elseif ms:is_active() then
-      flush_omit()
-      table.insert(out, line)
+
+    if hide then
+      if is_if_open(trimmed) then
+        ms:process_line(trimmed)
+        if ms:is_active() and skip_depth == 0 then
+          table.insert(out, line)
+        elseif not ms:is_active() then
+          skip_depth = skip_depth + 1
+        end
+      elseif trimmed:match('^#endif') then
+        if skip_depth > 0 then
+          ms:process_line(trimmed)
+          skip_depth = skip_depth - 1
+        else
+          ms:process_line(trimmed)
+          table.insert(out, line)
+        end
+      elseif trimmed:match('^#else') or trimmed:match('^#elif') then
+        local was_skipping = skip_depth > 0
+        ms:process_line(trimmed)
+        if was_skipping and ms:is_active() then
+          skip_depth = skip_depth - 1
+        end
+        if skip_depth == 0 and ms:is_active() then
+          table.insert(out, line)
+        end
+      elseif skip_depth > 0 then
+        ms:process_line(trimmed)
+      else
+        ms:process_line(trimmed)
+        if ms:is_active() then
+          table.insert(out, line)
+        end
+      end
     else
-      omit_count = omit_count + 1
-      if not omit_context then
-        omit_context = ms:inactive_context()
+      ms:process_line(trimmed)
+      if is_directive(trimmed) then
+        flush_omit()
+        table.insert(out, line)
+      elseif ms:is_active() then
+        flush_omit()
+        table.insert(out, line)
+      else
+        omit_count = omit_count + 1
+        if not omit_context then
+          omit_context = ms:inactive_context()
+        end
       end
     end
   end

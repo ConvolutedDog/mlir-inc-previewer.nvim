@@ -261,6 +261,35 @@ describe('expand: MLIR Passes.h.inc-like GEN_PASS_DEF vs GEN_PASS_DECL', functio
   no(s, 'createBaz', '#define inside inactive GEN_PASS_DEF_FOO does not leak')
 end)
 
+describe('expand: hide_inactive_blocks removes entire inactive #if regions', function()
+  write_inc('hide.inc', {
+    '#ifdef ACTIVE',
+    'visible_line',
+    '#endif',
+    '#ifdef INACTIVE',
+    'hidden_line',
+    '#endif // INACTIVE',
+    '#ifdef INACTIVE2',
+    'also_hidden',
+    '#endif',
+  })
+  cfg.options.hide_inactive_blocks = true
+  local b = make_buf({
+    '#define ACTIVE',
+    '#include "hide.inc"',
+  })
+  preview.expand_at(b, 1, true)
+  local s = buf_str(b)
+  has(s, 'visible_line', 'keeps active block')
+  has(s, '#ifdef ACTIVE', 'keeps active ifdef')
+  no(s, '#ifdef INACTIVE', 'hides inactive ifdef')
+  no(s, '#endif // INACTIVE', 'hides inactive endif')
+  no(s, 'hidden_line', 'hides inactive body')
+  no(s, 'MLIR_INC_PREVIEW:', 'no omit markers when hiding')
+  no(s, 'INACTIVE2', 'hides second inactive block entirely')
+  cfg.options.hide_inactive_blocks = false
+end)
+
 describe('expand: macro-aware filters inactive blocks', function()
   local b = make_buf({
     'void f() {',

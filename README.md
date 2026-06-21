@@ -72,7 +72,8 @@ require('mlir-inc-previewer').setup({
   use_lsp = true,         -- resolve .inc paths via the LSP (clangd) when supported
   search_range = 3,       -- look this many lines above/below the cursor for an include
   deep_search = true,     -- last-resort recursive project search (disable on huge repos)
-  omit_marker = true,    -- macro-aware: insert /// summary where code was omitted
+  omit_marker = true,    -- macro-aware: /// summary where code was omitted
+  hide_inactive_blocks = false, -- true: drop entire inactive #if..#endif blocks
   keymaps = {
     toggle = '<leader>iu',          -- Expand/Collapse (macro-aware)
     toggle_full = '<leader>ij',     -- Expand/Collapse (macro-unaware)
@@ -85,6 +86,17 @@ require('mlir-inc-previewer').setup({
 ```
 
 Set any keymap to `false` or `''` to disable it.
+
+**Macro-aware inactive blocks** — two modes:
+
+| Option | Effect |
+|--------|--------|
+| `hide_inactive_blocks = true` | Entire inactive `#ifdef`…`#endif` removed (recommended for MLIR) |
+| `omit_marker = true` (default, when hide is false) | Keep `#ifdef`/`#endif`, insert `/// [MLIR_INC_PREVIEW: N lines omitted …]` |
+
+```lua
+require('mlir-inc-previewer').setup({ hide_inactive_blocks = true })
+```
 
 ## Commands
 
