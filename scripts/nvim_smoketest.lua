@@ -198,6 +198,69 @@ write_inc('Ops.cpp.inc', {
   '#endif // GET_OP_CLASSES',
 })
 
+describe('macros: inactive branch does not apply #define', function()
+  local ms = MacroState.new()
+  ms:process_line('#ifdef OUTER')
+  ms:process_line('#define LEAKED')
+  ms:process_line('#endif')
+  ok_(ms.defined['LEAKED'] == nil, '#define inside inactive block is ignored')
+  ms:process_line('#ifdef LEAKED')
+  ok_(not ms:is_active(), 'leaked define did not become active')
+  ms:process_line('#endif')
+end)
+
+describe('macros: nested #ifdef inactive when outer inactive', function()
+  local ms = MacroState.new()
+  ms.defined['INNER'] = true -- simulate host #define
+  ms:process_line('#ifdef OUTER') -- inactive
+  ms:process_line('#ifdef INNER') -- must stay inactive despite INNER defined
+  ok_(not ms:is_active(), 'inner block inactive inside inactive outer')
+  ms:process_line('#endif')
+  ms:process_line('#endif')
+end)
+
+describe('expand: MLIR Passes.h.inc-like GEN_PASS_DEF vs GEN_PASS_DECL', function()
+  write_inc('Passes.h.inc', {
+    '#ifdef GEN_PASS_DECL',
+    'void decl_common();',
+    '#endif // GEN_PASS_DECL',
+    '#ifdef GEN_PASS_DECL_FOO',
+    'void createFoo();',
+    '#undef GEN_PASS_DECL_FOO',
+    '#endif // GEN_PASS_DECL_FOO',
+    '#ifdef GEN_PASS_DEF_FOO',
+    'class FooBase {};',
+    '#undef GEN_PASS_DEF_FOO',
+    '#endif // GEN_PASS_DEF_FOO',
+    '#ifdef GEN_PASS_DECL_BAR',
+    'void createBar();',
+    '#undef GEN_PASS_DECL_BAR',
+    '#endif // GEN_PASS_DECL_BAR',
+    '#ifdef GEN_PASS_DEF_BAR',
+    'class BarBase {};',
+    '#undef GEN_PASS_DEF_BAR',
+    '#endif // GEN_PASS_DEF_BAR',
+    '#ifdef GEN_PASS_DECL',
+    '#define GEN_PASS_DECL_BAZ',
+    '#endif',
+    '#ifdef GEN_PASS_DECL_BAZ',
+    'void createBaz();',
+    '#endif',
+  })
+  local b = make_buf({
+    '#define GEN_PASS_DEF_FOO',
+    '#include "Passes.h.inc"',
+  })
+  preview.expand_at(b, 1, true)
+  local s = buf_str(b)
+  no(s, 'decl_common', 'GEN_PASS_DECL block omitted')
+  no(s, 'createFoo', 'GEN_PASS_DECL_FOO omitted when not defined')
+  no(s, 'createBar', 'GEN_PASS_DECL_BAR omitted when not defined')
+  has(s, 'class FooBase', 'GEN_PASS_DEF_FOO body kept')
+  no(s, 'class BarBase', 'GEN_PASS_DEF_BAR omitted')
+  no(s, 'createBaz', '#define inside inactive GEN_PASS_DEF_FOO does not leak')
+end)
+
 describe('expand: macro-aware filters inactive blocks', function()
   local b = make_buf({
     'void f() {',
