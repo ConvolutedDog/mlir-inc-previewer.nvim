@@ -102,4 +102,19 @@ function MacroState:is_active()
   return true
 end
 
+-- Human-readable label for the innermost inactive conditional block (for omit
+-- markers in macro-aware preview).
+function MacroState:inactive_context()
+  for i = #self.stack, 1, -1 do
+    local block = self.stack[i]
+    if not block.active then
+      if block.name ~= '' then
+        return string.format('inactive #%s %s', block.type, block.name)
+      end
+      return string.format('inactive #%s', block.type)
+    end
+  end
+  return 'inactive conditional block'
+end
+
 return MacroState

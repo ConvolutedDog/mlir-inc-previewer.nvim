@@ -211,8 +211,58 @@ describe('expand: macro-aware filters inactive blocks', function()
   has(s, cfg.END_TAG, 'has end tag')
   has(s, 'OpA, OpB', 'keeps active content')
   no(s, 'class Hidden', 'drops inactive content')
+  has(s, 'MLIR_INC_PREVIEW:', 'has omit marker by default')
   has(s, '/// MLIR Inc File:', 'has file header')
   eq(util.count_preview_blocks(buf_lines(b)), 1, 'exactly one block')
+end)
+
+describe('expand: omit_marker inserts summary for inactive regions', function()
+  cfg.options.omit_marker = true
+  local b = make_buf({
+    '#define GET_OP_LIST',
+    '#include "Ops.cpp.inc"',
+  })
+  ok_(preview.expand_at(b, 1, true), 'expand_at returns true')
+  local s = buf_str(b)
+  has(s, 'OpA, OpB', 'keeps active content')
+  no(s, 'class Hidden', 'still drops inactive body')
+  has(s, '/// [MLIR_INC_PREVIEW: 1 line omitted — inactive #ifdef GET_OP_CLASSES]', 'marker for single line')
+  has(s, '#ifdef GET_OP_CLASSES', 'directives kept')
+  cfg.options.omit_marker = false
+end)
+
+describe('expand: omit_marker one marker per contiguous run', function()
+  write_inc('multi.inc', {
+    '#ifdef OFF',
+    'hidden_a',
+    'hidden_b',
+    'hidden_c',
+    '#endif',
+  })
+  cfg.options.omit_marker = true
+  local b = make_buf({ '#include "multi.inc"' })
+  preview.expand_at(b, 0, true)
+  local s = buf_str(b)
+  has(s, '/// [MLIR_INC_PREVIEW: 3 lines omitted — inactive #ifdef OFF]', 'single marker for 3 lines')
+  -- only one omit marker line
+  local n = 0
+  for line in s:gmatch('[^\n]+') do
+    if line:find('MLIR_INC_PREVIEW:', 1, true) and line:find('omitted', 1, true) then
+      n = n + 1
+    end
+  end
+  eq(n, 1, 'exactly one omit marker')
+  cfg.options.omit_marker = false
+end)
+
+describe('expand: omit_marker off when macro-unaware', function()
+  cfg.options.omit_marker = true
+  local b = make_buf({ '#include "Ops.cpp.inc"' })
+  preview.expand_at(b, 0, false)
+  local s = buf_str(b)
+  has(s, 'class Hidden', 'macro-unaware keeps all')
+  no(s, 'omitted —', 'no omit markers in macro-unaware mode')
+  cfg.options.omit_marker = false
 end)
 
 describe('expand: macro-unaware keeps everything', function()

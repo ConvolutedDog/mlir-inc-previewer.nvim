@@ -22,19 +22,51 @@ end
 
 -- Filter .inc lines through a (running) macro state, keeping only active lines.
 -- The state is advanced in place, so callers can reuse it across includes to
--- get correct sequential macro context.
+-- get correct sequential macro context. When `omit_marker` is enabled, each
+-- contiguous run of omitted body lines gets one summary /// comment.
+local function is_directive(trimmed)
+  return trimmed:match('^#if') or trimmed:match('^#elif')
+      or trimmed:match('^#else') or trimmed:match('^#endif')
+end
+
+local function omit_marker_line(count, context)
+  local noun = count == 1 and 'line' or 'lines'
+  return string.format('/// [MLIR_INC_PREVIEW: %d %s omitted — %s]', count, noun, context)
+end
+
 local function filter_with_state(ms, inc_lines)
+  local show_markers = cfg.options.omit_marker
   local out = {}
+  local omit_count = 0
+  local omit_context = nil
+
+  local function flush_omit()
+    if omit_count > 0 then
+      if show_markers then
+        table.insert(out, omit_marker_line(omit_count, omit_context or 'inactive conditional block'))
+      end
+      omit_count = 0
+      omit_context = nil
+    end
+  end
+
   for _, line in ipairs(inc_lines) do
     local trimmed = vim.trim(line)
     ms:process_line(trimmed)
-    if trimmed:match('^#if') or trimmed:match('^#elif')
-        or trimmed:match('^#else') or trimmed:match('^#endif') then
+    if is_directive(trimmed) then
+      flush_omit()
       table.insert(out, line)
     elseif ms:is_active() then
+      flush_omit()
       table.insert(out, line)
+    else
+      omit_count = omit_count + 1
+      if not omit_context then
+        omit_context = ms:inactive_context()
+      end
     end
   end
+  flush_omit()
   return out
 end
 

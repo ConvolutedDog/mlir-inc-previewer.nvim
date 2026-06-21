@@ -72,6 +72,7 @@ require('mlir-inc-previewer').setup({
   use_lsp = true,         -- resolve .inc paths via the LSP (clangd) when supported
   search_range = 3,       -- look this many lines above/below the cursor for an include
   deep_search = true,     -- last-resort recursive project search (disable on huge repos)
+  omit_marker = true,    -- macro-aware: insert /// summary where code was omitted
   keymaps = {
     toggle = '<leader>iu',          -- Expand/Collapse (macro-aware)
     toggle_full = '<leader>ij',     -- Expand/Collapse (macro-unaware)

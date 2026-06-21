@@ -47,6 +47,9 @@ M.defaults = {
   -- Allow a recursive project-tree search as a last-resort path resolver.
   -- Disable on very large repos if the fallback is slow (rely on the LSP).
   deep_search = true,
+  -- In macro-aware mode, insert a one-line /// comment summarising each
+  -- contiguous region of omitted (inactive) code. Default true.
+  omit_marker = true,
   -- Buffer-local keymaps. Set any entry to false/'' to disable it.
   keymaps = {
     toggle = '<leader>iu',          -- Expand/Collapse (macro-aware)

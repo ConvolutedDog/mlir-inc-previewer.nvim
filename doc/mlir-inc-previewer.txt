@@ -47,6 +47,7 @@ keymaps and clean-on-save:
       use_lsp = true,         -- resolve .inc paths via the LSP when supported
       search_range = 3,       -- lines above/below the cursor to scan
       deep_search = true,     -- last-resort recursive project search
+      omit_marker = true,    -- macro-aware: /// summary where code was omitted
       keymaps = {
         toggle = '<leader>iu',
         toggle_full = '<leader>ij',
@@ -135,5 +136,14 @@ On expand, the original include line is replaced with:
 <
 Collapse/clean reverses this: it deletes the tagged block and the surrounding
 clang-format directives, then uncomments the original include line.
+
+Macro-aware mode (`omit_marker = true`) inserts one summary comment per
+contiguous region of omitted inactive code, for example:
+>
+    #ifdef GET_OP_CLASSES
+    /// [MLIR_INC_PREVIEW: 847 lines omitted — inactive #ifdef GET_OP_CLASSES]
+    #endif // GET_OP_CLASSES
+<
+Only macro-aware expansion uses this; macro-unaware mode never omits lines.
 
  vim:tw=78:ts=8:ft=help:norl:
