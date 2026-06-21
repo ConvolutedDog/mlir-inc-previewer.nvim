@@ -47,7 +47,7 @@ function M.restart()
       total_blocks, total_blocks == 1 and '' or 's',
       total_bufs, total_bufs == 1 and '' or 's'))
   else
-    vim.notify('[mlir-inc-previewer] Restarted: no preview blocks found')
+    vim.notify('[mlir-inc-previewer] Restarted successfully (no preview blocks to clean)')
   end
 end
 
