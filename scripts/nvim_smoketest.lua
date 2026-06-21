@@ -434,7 +434,7 @@ end)
 describe('user commands exist', function()
   for _, c in ipairs({
     'MlirIncToggle', 'MlirIncToggleFull', 'MlirIncExpandAll',
-    'MlirIncExpandAllFull', 'MlirIncClean', 'MlirIncCleanAndSave', 'MlirIncNext', 'MlirIncHelp',
+    'MlirIncExpandAllFull', 'MlirIncClean', 'MlirIncCleanAndSave', 'MlirIncNext', 'MlirIncHelp', 'MlirIncRestart',
   }) do
     eq(vim.fn.exists(':' .. c), 2, c .. ' is defined')
   end
@@ -468,6 +468,21 @@ describe('clean_and_save cleans buffer and writes', function()
   eq(util.count_preview_blocks(buf_lines(0)), 0, 'buffer cleaned')
   local on_disk = table.concat(vim.fn.readfile(path), '\n')
   no(on_disk, cfg.BEGIN_TAG, 'disk has no preview block')
+end)
+
+describe('restart: cleans all loaded buffers and refreshes setup', function()
+  local b1 = make_buf({ '#include "Simple.inc"' })
+  preview.expand_all(false)
+  eq(util.count_preview_blocks(buf_lines(b1)), 1, 'precondition: one block in b1')
+
+  vim.cmd('enew!')
+  local b2 = make_buf({ '#include "Ops.cpp.inc"' })
+  preview.expand_all(false)
+  eq(util.count_preview_blocks(buf_lines(b2)), 1, 'precondition: one block in b2')
+
+  m.restart()
+  eq(util.count_preview_blocks(buf_lines(b1)), 0, 'b1 cleaned after restart')
+  eq(util.count_preview_blocks(buf_lines(b2)), 0, 'b2 cleaned after restart')
 end)
 
 describe('extension-based attach: keymaps for the full extension family', function()

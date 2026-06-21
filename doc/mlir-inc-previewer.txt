@@ -68,7 +68,7 @@ Plugin manager example (lazy.nvim):
       cmd = {
         'MlirIncToggle', 'MlirIncToggleFull', 'MlirIncExpandAll',
         'MlirIncExpandAllFull', 'MlirIncClean', 'MlirIncCleanAndSave',
-        'MlirIncNext', 'MlirIncHelp',
+        'MlirIncNext', 'MlirIncHelp', 'MlirIncRestart',
       },
       opts = {},
     }
@@ -86,7 +86,9 @@ Plugin manager example (lazy.nvim):
   :MlirIncClean           Remove all preview blocks, restore include lines.
   :MlirIncCleanAndSave    Clean all preview blocks, then write the file.
   :MlirIncNext            Jump to the next preview block.
-  :MlirIncHelp             Open this help file.
+  :MlirIncRestart         Restart: clean all previews in every loaded buffer and
+                          re-apply setup (like :LspRestart).
+  :MlirIncHelp            Open this help file.
 
 If `:help mlir-inc-previewer` says "no help", the plugin is not loaded yet.
 Run `:MlirIncHelp` or `:Lazy load mlir-inc-previewer.nvim` first.

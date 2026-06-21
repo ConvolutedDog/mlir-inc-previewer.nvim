@@ -23,6 +23,34 @@ function M.clean()
   end
 end
 
+-- Reset plugin state: clean previews in every loaded buffer and re-apply setup
+-- (refreshes autocmds / keymaps), similar to :LspRestart.
+function M.restart()
+  local total_blocks = 0
+  local total_bufs = 0
+
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) then
+      local n = preview.clean_all(buf)
+      if n > 0 then
+        total_blocks = total_blocks + n
+        total_bufs = total_bufs + 1
+      end
+    end
+  end
+
+  M.setup(cfg.options)
+
+  if total_blocks > 0 then
+    vim.notify(string.format(
+      '[mlir-inc-previewer] Restarted: cleaned %d preview%s in %d buffer%s',
+      total_blocks, total_blocks == 1 and '' or 's',
+      total_bufs, total_bufs == 1 and '' or 's'))
+  else
+    vim.notify('[mlir-inc-previewer] Restarted: no preview blocks found')
+  end
+end
+
 -- Statusline component: returns e.g. "MLIR Inc: 2 previews" or "".
 function M.statusline()
   local bufnr = vim.api.nvim_get_current_buf()

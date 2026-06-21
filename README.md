@@ -36,7 +36,7 @@ lazy.nvim / LazyVim:
   cmd = {
     'MlirIncToggle', 'MlirIncToggleFull', 'MlirIncExpandAll',
     'MlirIncExpandAllFull', 'MlirIncClean', 'MlirIncCleanAndSave',
-    'MlirIncNext', 'MlirIncHelp',
+    'MlirIncNext', 'MlirIncHelp', 'MlirIncRestart',
   },
   opts = {},
 }
@@ -88,15 +88,17 @@ Set any keymap to `false` or `''` to disable it.
 
 ## Commands
 
-| Command                 | Action                                              |
-|-------------------------|-----------------------------------------------------|
-| `:MlirIncToggle`        | Expand/Collapse preview near cursor (macro-aware)   |
-| `:MlirIncToggleFull`    | Expand/Collapse preview near cursor (macro-unaware) |
-| `:MlirIncExpandAll`     | Expand all previews (macro-aware)                   |
-| `:MlirIncExpandAllFull` | Expand all previews (macro-unaware)                 |
-| `:MlirIncClean`         | Remove all preview blocks                           |
-| `:MlirIncCleanAndSave`  | Clean all preview blocks, then write the file       |
-| `:MlirIncNext`          | Jump to the next preview block                      |
+| Command                 | Action                                                     |
+|-------------------------|------------------------------------------------------------|
+| `:MlirIncToggle`        | Expand/Collapse preview near cursor (macro-aware)          |
+| `:MlirIncToggleFull`    | Expand/Collapse preview near cursor (macro-unaware)        |
+| `:MlirIncExpandAll`     | Expand all previews (macro-aware)                          |
+| `:MlirIncExpandAllFull` | Expand all previews (macro-unaware)                        |
+| `:MlirIncClean`         | Remove all preview blocks                                  |
+| `:MlirIncCleanAndSave`  | Clean all preview blocks, then write the file              |
+| `:MlirIncNext`          | Jump to the next preview block                             |
+| `:MlirIncRestart`       | Restart: clean all previews in every buffer, refresh hooks |
+| `:MlirIncHelp`          | Open plugin help                                           |
 
 The cursor does not need to be exactly on the `#include` line; the plugin
 searches +/-3 lines around the cursor and also recognises when the cursor is

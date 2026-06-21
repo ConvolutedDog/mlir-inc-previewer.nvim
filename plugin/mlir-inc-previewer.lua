@@ -41,6 +41,9 @@ cmd('MlirIncHelp', function()
   vim.cmd('help mlir-inc-previewer')
 end, { desc = 'MLIR Inc: Open plugin help' })
 
+cmd('MlirIncRestart', function() api().restart() end,
+  { desc = 'MLIR Inc: Restart (clean all previews, refresh hooks)' })
+
 -- Generate helptags for this plugin's doc/ on load. Lazy-loaded plugins are not
 -- in &rtp until loaded, so :help mlir-inc-previewer fails until tags exist.
 local root = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':h:h')
